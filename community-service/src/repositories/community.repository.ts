@@ -1,5 +1,5 @@
 // community-service/src/repositories/community.repository.ts
-import { eq, sql, desc } from 'drizzle-orm';
+import { and, eq, sql, desc } from 'drizzle-orm';
 import { db } from '../db/client';
 import { communities, memberships } from '../db/schema';
 
@@ -20,7 +20,7 @@ export const communityRepository = {
   },
 
   async removeMember(communityId: string, userId: string) {
-    await db.delete(memberships).where(sql`${memberships.communityId} = ${communityId} AND ${memberships.userId} = ${userId}`);
+    await db.delete(memberships).where(and(eq(memberships.communityId, communityId), eq(memberships.userId, userId)));
   },
 
   async exists(id: string) {
