@@ -8,21 +8,16 @@ import { createClient } from 'redis';
 import { env } from './config/env';
 import { jwtMiddleware } from './middleware/auth';
 import { buildGatewayRoutes } from './routes/gateway.routes';
-import { logger } from './logger';
 
-export async function buildApp(): Promise<Express> {
+type RedisClient = ReturnType<typeof createClient>;
+
+export function buildApp(redisClient: RedisClient): Express {
   const app = express();
 
   app.use(helmet());
   app.use(cors({ origin: env.corsOrigin }));
 
   // ---- Redis-backed rate limiting ----
-  const redisClient = createClient({
-    socket: { host: env.redis.host, port: env.redis.port },
-  });
-  redisClient.on('error', (err) => logger.error(`Redis error: ${err.message}`));
-  await redisClient.connect();
-
   app.use(
     rateLimit({
       windowMs: env.rateLimit.windowMs,
