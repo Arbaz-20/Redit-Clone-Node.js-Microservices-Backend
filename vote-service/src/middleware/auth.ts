@@ -1,3 +1,4 @@
+// vote-service/src/middleware/auth.ts
 import { NextFunction, Request, Response } from 'express';
 
 // The API Gateway validates the JWT and forwards identity via trusted headers.
