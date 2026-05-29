@@ -19,6 +19,6 @@ export const voteRepository = {
   async score(targetType: string, targetId: string): Promise<number> {
     const rows = await db.select({ score: sql<number>`COALESCE(SUM(${votes.value}), 0)::int` }).from(votes)
       .where(and(eq(votes.targetType, targetType), eq(votes.targetId, targetId)));
-    return rows[0].score;
+    return rows[0]?.score ?? 0;
   },
 };
