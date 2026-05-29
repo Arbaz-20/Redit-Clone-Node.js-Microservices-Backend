@@ -66,7 +66,7 @@ export const feedService = {
   },
 
   // Hot feed (time-decayed ranking). Optional communityId filter = lightweight personalization.
-  async getHotFeed(limit: number, communityId?: unknown): Promise<FeedPost[]> {
+  async getHotFeed(limit: number, communityId?: string): Promise<FeedPost[]> {
     const ids = await feedRepository.rankedIds(limit * 3);
     let posts = await hydrate(ids);
     if (communityId) posts = posts.filter((p) => p.communityId === communityId);

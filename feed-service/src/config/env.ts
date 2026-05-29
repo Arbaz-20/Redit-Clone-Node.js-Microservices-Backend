@@ -3,7 +3,6 @@ import 'dotenv/config';
 
 export const env = {
   port: Number(process.env.PORT || 4007),
-  serviceName: process.env.SERVICE_NAME || 'feed-service',
   redis: {
     host: process.env.REDIS_HOST || 'redis',
     port: Number(process.env.REDIS_PORT || 6379),
