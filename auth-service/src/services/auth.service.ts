@@ -7,6 +7,12 @@ import { AppError } from '../middleware/error';
 import { userRepository } from '../repositories/user.repository';
 import { publishEvent } from '../lib/broker';
 
+interface JwtPayload {
+  sub: string;
+  username: string;
+  type?: string;
+}
+
 function issueTokens(id: string, username: string) {
   const accessToken = jwt.sign({ sub: id, username }, env.jwtSecret, { expiresIn: env.accessTtl } as jwt.SignOptions);
   const refreshToken = jwt.sign({ sub: id, username, type: 'refresh' }, env.jwtSecret, { expiresIn: env.refreshTtl } as jwt.SignOptions);
@@ -37,7 +43,7 @@ export const authService = {
 
   refresh(refreshToken: string) {
     try {
-      const payload = jwt.verify(refreshToken, env.jwtSecret) as any;
+      const payload = jwt.verify(refreshToken, env.jwtSecret) as JwtPayload;
       if (payload.type !== 'refresh') throw new AppError(401, 'Not a refresh token');
       const accessToken = jwt.sign({ sub: payload.sub, username: payload.username }, env.jwtSecret, { expiresIn: env.accessTtl } as jwt.SignOptions);
       return { accessToken };
