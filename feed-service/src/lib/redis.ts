@@ -1,8 +1,9 @@
 import { createClient, RedisClientType } from 'redis';
+import { env } from '../config/env';
 import { logger } from './logger';
 
 export const redis: RedisClientType = createClient({
-  socket: { host: process.env.REDIS_HOST || 'redis', port: Number(process.env.REDIS_PORT || 6379) },
+  socket: { host: env.redis.host, port: env.redis.port },
 });
 
 redis.on('error', (err) => logger.error(`Redis error: ${err.message}`));
