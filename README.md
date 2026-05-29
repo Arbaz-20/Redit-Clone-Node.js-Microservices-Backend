@@ -1,11 +1,12 @@
 # Reddit Clone — Microservices Backend
 
 A scalable, Reddit-style social platform built as an event-driven microservices system using
-**Node.js + Express + TypeScript**, orchestrated with **Docker Compose**, backed by **PostgreSQL**,
-**Redis**, and **RabbitMQ**.
+**Node.js + Express + TypeScript**, orchestrated with **Docker Compose**, backed by **PostgreSQL**
+(accessed through **Drizzle ORM**), **Redis**, and **RabbitMQ**.
 
 Every service owns its own database, communicates synchronously through a single **API Gateway**, and
-reacts to domain events asynchronously over a **RabbitMQ topic exchange**.
+reacts to domain events asynchronously over a **RabbitMQ topic exchange**. Each service is organized as a
+clean, layered architecture: **routes → controller → service → repository → db**.
 
 ---
 
@@ -84,6 +85,7 @@ Infrastructure containers: **postgres** (`:5432`), **redis** (`:6379`),
 - **Web:** Express 4
 - **Auth:** JSON Web Tokens (access + refresh), bcryptjs
 - **Datastores:** PostgreSQL 16 (database-per-service), Redis 7
+- **ORM / migrations:** Drizzle ORM + drizzle-kit (type-safe schema, versioned SQL migrations applied on boot)
 - **Messaging:** RabbitMQ 3.13 (topic exchange, durable queues)
 - **Validation:** Joi
 - **Hardening:** Helmet, CORS, `express-rate-limit` backed by Redis
@@ -332,22 +334,47 @@ redit clone nodejs backend/
 ├── .env.example
 └── README.md
 
-# Each service:
+# Each Postgres service (layered architecture):
 <service>/
-├── Dockerfile              # multi-stage: build (tsc) → slim runtime
+├── Dockerfile              # multi-stage: build (tsc) → slim runtime (also copies drizzle/)
+├── drizzle.config.ts       # drizzle-kit config (schema path, out dir, db creds)
+├── drizzle/                # generated, versioned SQL migrations (+ meta/)
 ├── package.json
 ├── tsconfig.json
 └── src/
-    ├── index.ts            # express app, routes, event wiring
+    ├── index.ts            # thin bootstrap: migrate → broker → consumers → listen
+    ├── app.ts              # builds the Express app, mounts routes + central error handler
+    ├── config/
+    │   └── env.ts          # typed, validated environment config
+    ├── db/
+    │   ├── schema.ts       # Drizzle table definitions (pgTable)
+    │   ├── client.ts       # Drizzle instance over a pg Pool
+    │   ├── migrate.ts      # applyMigrations() — runs on boot
+    │   └── run-migrate.ts  # standalone runner (npm run db:migrate)
+    ├── validation/         # Joi request schemas
+    ├── repositories/       # ALL data access — the only layer that touches the DB
+    ├── services/           # business logic + event publishing
+    ├── controllers/        # parse request → call service → shape response
+    ├── routes/             # Express routers (path → controller)
+    ├── events/             # RabbitMQ consumers (services that react to events)
+    ├── middleware/
+    │   ├── error.ts        # AppError + central error handler + asyncHandler
+    │   └── auth.ts         # attachUser / requireUser (reads gateway headers)
     └── lib/
         ├── logger.ts       # winston
-        ├── db.ts           # pg pool + schema-on-boot  (not in feed)
-        ├── broker.ts       # RabbitMQ publish/consume helpers
-        └── middleware.ts   # attachUser / requireUser (reads gateway headers)
+        └── broker.ts       # RabbitMQ publish/consume helpers
 ```
 
-Database tables are created on service boot via `CREATE TABLE IF NOT EXISTS` (migration-on-start) — no
-separate migration step is needed for local development.
+Two services differ from the template above:
+
+- **feed-service** is Redis-backed: it has no `db/`, `drizzle/`, or `drizzle.config.ts`; its repository
+  talks to Redis via `src/lib/redis.ts`.
+- **api-gateway** has no database: no `db/`/`drizzle/`; it adds `src/config/services.ts` (the declarative
+  proxy route table) and its `middleware/auth.ts` verifies the JWT rather than reading gateway headers.
+
+**Migrations** are defined in `src/db/schema.ts`, generated into `drizzle/` with `npm run db:generate`
+(drizzle-kit), and applied automatically on service boot by `applyMigrations()` before the server starts.
+Each Postgres service keeps its versioned migration files in its own `drizzle/` folder.
 
 ---
 
@@ -376,6 +403,16 @@ docker compose up -d --build post-service   # rebuild + restart one service
 docker compose down -v                  # stop and delete data volume
 ```
 
+**Changing the database schema:** edit `src/db/schema.ts` in the service, then regenerate its migration:
+
+```bash
+cd post-service
+npm run db:generate     # drizzle-kit writes a new versioned SQL file into drizzle/
+```
+
+Commit the generated file in `drizzle/`. Migrations are applied automatically on the next service boot
+(`applyMigrations()`); `npm run db:migrate` runs them standalone against a built service if needed.
+
 ---
 
 ## Security
@@ -387,7 +424,7 @@ Implemented:
 - Helmet security headers + configurable CORS at the gateway.
 - Redis-backed rate limiting.
 - Joi input validation on every write endpoint.
-- Parameterized SQL everywhere (no string concatenation) → SQL-injection safe.
+- All data access goes through Drizzle ORM (parameterized queries, no string concatenation) → SQL-injection safe.
 - Database-per-service isolation.
 
 For production also add: HTTPS/TLS termination, secret management (not `.env`), refresh-token rotation
