@@ -32,7 +32,8 @@ export const postService = {
     return { deleted: true, id };
   },
 
-  applyVote(targetType: string, targetId: string, delta: number) {
+  applyVote(targetType: string, targetId: string, delta: number): Promise<void> {
     if (targetType === 'post' && delta) return postRepository.addScore(targetId, delta);
+    return Promise.resolve();
   },
 };

@@ -1,6 +1,8 @@
 // post-service/src/middleware/auth.ts
 import { NextFunction, Request, Response } from 'express';
 
+// The API Gateway validates the JWT and forwards identity via trusted headers.
+// Downstream services read those headers; they never see raw tokens.
 export interface AuthedRequest extends Request {
   userId?: string;
   username?: string;
