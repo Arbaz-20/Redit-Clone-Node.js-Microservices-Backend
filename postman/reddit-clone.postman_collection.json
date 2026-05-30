@@ -1,0 +1,467 @@
+{
+  "info": {
+    "name": "Reddit Clone — Microservices",
+    "description": "All APIs for the Reddit-clone microservices backend, routed through the API Gateway (http://localhost:8080).\n\n## Getting started\n1. Import this collection AND `reddit-clone.postman_environment.json`, then select the **Reddit Clone — Local** environment (top-right).\n2. Run **Auth › Register** (or **Login**). Their test scripts automatically store `accessToken` and `refreshToken` into the environment.\n3. Every other request inherits a `Bearer {{accessToken}}` token at the collection level — no manual header needed.\n\nThe gateway verifies the JWT, then forwards an `x-user-id` / `x-username` identity to the downstream service. Endpoints marked **(auth)** require a valid token; the rest are public.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "communityId", "value": "", "type": "string" },
+    { "key": "postId", "value": "", "type": "string" },
+    { "key": "commentId", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Gateway health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) pm.environment.set('accessToken', res.accessToken);",
+                  "if (res.refreshToken) pm.environment.set('refreshToken', res.refreshToken);",
+                  "if (res.user && res.user.id) pm.environment.set('userId', res.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"snoo_user\",\n  \"email\": \"snoo@example.com\",\n  \"password\": \"supersecret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "Create a new account. Returns `{ user, accessToken, refreshToken }`.\n\nValidation: username alphanumeric 3-32, valid email, password 8-128 chars."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) pm.environment.set('accessToken', res.accessToken);",
+                  "if (res.refreshToken) pm.environment.set('refreshToken', res.refreshToken);",
+                  "if (res.user && res.user.id) pm.environment.set('userId', res.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"snoo_user\",\n  \"password\": \"supersecret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Log in with username OR email as `identifier`. Returns `{ user, accessToken, refreshToken }`."
+          }
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) pm.environment.set('accessToken', res.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] },
+            "description": "Exchange a valid refresh token for a fresh `accessToken`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get my profile (auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          }
+        },
+        {
+          "name": "Update my bio (auth)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Just here for the memes.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] },
+            "description": "Update the authenticated user's bio (max 500 chars, empty string allowed)."
+          }
+        },
+        {
+          "name": "Get profile by id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Communities",
+      "item": [
+        {
+          "name": "Create community (auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.environment.set('communityId', res.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"programming\",\n  \"description\": \"A place to talk about code.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/communities", "host": ["{{baseUrl}}"], "path": ["communities"] },
+            "description": "Create a community. `name` must match ^[A-Za-z0-9_]{3,32}$. Saves the new id to `{{communityId}}`."
+          }
+        },
+        {
+          "name": "List communities",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/communities", "host": ["{{baseUrl}}"], "path": ["communities"] }
+          }
+        },
+        {
+          "name": "Get community by id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/communities/{{communityId}}", "host": ["{{baseUrl}}"], "path": ["communities", "{{communityId}}"] }
+          }
+        },
+        {
+          "name": "Join community (auth)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/communities/{{communityId}}/join", "host": ["{{baseUrl}}"], "path": ["communities", "{{communityId}}", "join"] }
+          }
+        },
+        {
+          "name": "Leave community (auth)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/communities/{{communityId}}/leave", "host": ["{{baseUrl}}"], "path": ["communities", "{{communityId}}", "leave"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create post (auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.environment.set('postId', res.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"communityId\": \"{{communityId}}\",\n  \"title\": \"Hello world\",\n  \"body\": \"My first post on the clone.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/posts", "host": ["{{baseUrl}}"], "path": ["posts"] },
+            "description": "Create a post in a community. `communityId` must be a UUID, `title` 1-300 chars. Saves new id to `{{postId}}`."
+          }
+        },
+        {
+          "name": "List posts",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts?communityId={{communityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"],
+              "query": [{ "key": "communityId", "value": "{{communityId}}", "description": "Optional — filter by community" }]
+            }
+          }
+        },
+        {
+          "name": "Get post by id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/posts/{{postId}}", "host": ["{{baseUrl}}"], "path": ["posts", "{{postId}}"] }
+          }
+        },
+        {
+          "name": "Delete post (auth)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/posts/{{postId}}", "host": ["{{baseUrl}}"], "path": ["posts", "{{postId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create comment (auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.environment.set('commentId', res.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postId\": \"{{postId}}\",\n  \"parentId\": null,\n  \"body\": \"Great post!\",\n  \"replyToUserId\": null\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/comments", "host": ["{{baseUrl}}"], "path": ["comments"] },
+            "description": "Add a comment to a post. `postId` UUID required, `body` 1-10000 chars. `parentId`/`replyToUserId` optional (null for top-level). Saves new id to `{{commentId}}`."
+          }
+        },
+        {
+          "name": "List comments for post",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments?postId={{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments"],
+              "query": [{ "key": "postId", "value": "{{postId}}", "description": "Required" }]
+            }
+          }
+        },
+        {
+          "name": "Get comment by id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["comments", "{{commentId}}"] }
+          }
+        },
+        {
+          "name": "Delete comment (auth)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["comments", "{{commentId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Votes",
+      "item": [
+        {
+          "name": "Cast vote (auth)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetType\": \"post\",\n  \"targetId\": \"{{postId}}\",\n  \"value\": 1,\n  \"authorId\": null\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/votes", "host": ["{{baseUrl}}"], "path": ["votes"] },
+            "description": "Up/down/clear a vote. `targetType`: post|comment. `value`: 1 (up), -1 (down), 0 (clear). `authorId` optional (post/comment author, used for karma)."
+          }
+        },
+        {
+          "name": "Get vote score",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/votes/score?targetType=post&targetId={{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["votes", "score"],
+              "query": [
+                { "key": "targetType", "value": "post" },
+                { "key": "targetId", "value": "{{postId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get my vote (auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/votes/me?targetType=post&targetId={{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["votes", "me"],
+              "query": [
+                { "key": "targetType", "value": "post" },
+                { "key": "targetId", "value": "{{postId}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feed",
+      "item": [
+        {
+          "name": "Hot feed",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/feed?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed"],
+              "query": [
+                { "key": "limit", "value": "25", "description": "Optional, max 100 (default 25)" },
+                { "key": "communityId", "value": "", "description": "Optional filter", "disabled": true }
+              ]
+            },
+            "description": "Time-decayed hot ranking. Optional `?communityId` filter."
+          }
+        },
+        {
+          "name": "Top feed",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/feed/top?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "top"],
+              "query": [{ "key": "limit", "value": "25", "description": "Optional, max 100 (default 25)" }]
+            },
+            "description": "Top feed ranked by raw vote score."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List notifications (auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/notifications", "host": ["{{baseUrl}}"], "path": ["notifications"] }
+          }
+        },
+        {
+          "name": "Unread count (auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["notifications", "unread-count"] }
+          }
+        },
+        {
+          "name": "Mark all read (auth)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["notifications", "read-all"] }
+          }
+        },
+        {
+          "name": "Mark one read (auth)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/notifications/:id/read", "host": ["{{baseUrl}}"], "path": ["notifications", ":id", "read"], "variable": [{ "key": "id", "value": "", "description": "Notification id" }] }
+          }
+        }
+      ]
+    }
+  ]
+}
