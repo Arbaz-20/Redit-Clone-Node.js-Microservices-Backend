@@ -14,28 +14,30 @@ const postProjection = {
   created_at: posts.createdAt,
 };
 
-export const postRepository = {
-  async insert(row: { id: string; communityId: string; authorId: string; authorUsername: string; title: string; body: string }) {
+export class PostRepository {
+  public async insert(row: { id: string; communityId: string; authorId: string; authorUsername: string; title: string; body: string }) {
     await db.insert(posts).values(row);
-  },
+  }
 
-  async list(communityId?: string) {
+  public async list(communityId?: string) {
     if (communityId) {
       return db.select(postProjection).from(posts).where(eq(posts.communityId, communityId)).orderBy(desc(posts.createdAt)).limit(100);
     }
     return db.select(postProjection).from(posts).orderBy(desc(posts.createdAt)).limit(100);
-  },
+  }
 
-  async getById(id: string) {
+  public async getById(id: string) {
     const rows = await db.select(postProjection).from(posts).where(eq(posts.id, id)).limit(1);
     return rows[0];
-  },
+  }
 
-  async delete(id: string) {
+  public async delete(id: string) {
     await db.delete(posts).where(eq(posts.id, id));
-  },
+  }
 
-  async addScore(id: string, delta: number) {
+  public async addScore(id: string, delta: number) {
     await db.update(posts).set({ voteScore: sql`${posts.voteScore} + ${delta}` }).where(eq(posts.id, id));
-  },
-};
+  }
+}
+
+export const postRepository = new PostRepository();

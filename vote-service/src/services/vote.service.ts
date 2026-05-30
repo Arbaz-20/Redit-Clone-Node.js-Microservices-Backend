@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { voteRepository } from '../repositories/vote.repository';
 import { publishEvent } from '../lib/broker';
 
-export const voteService = {
-  async cast(voterId: string, input: { targetType: string; targetId: string; value: number; authorId: string | null }) {
+export class VoteService {
+  public async cast(voterId: string, input: { targetType: string; targetId: string; value: number; authorId: string | null }) {
     const oldValue = await voteRepository.currentValue(voterId, input.targetType, input.targetId);
     const delta = input.value - oldValue;
 
@@ -21,11 +21,12 @@ export const voteService = {
       });
     }
     return { value: input.value, delta };
-  },
-  score(targetType: string, targetId: string) {
+  }
+  public score(targetType: string, targetId: string) {
     return voteRepository.score(targetType, targetId);
-  },
-  myValue(userId: string, targetType: string, targetId: string) {
+  }
+  public myValue(userId: string, targetType: string, targetId: string) {
     return voteRepository.currentValue(userId, targetType, targetId);
-  },
-};
+  }
+}
+export const voteService = new VoteService();

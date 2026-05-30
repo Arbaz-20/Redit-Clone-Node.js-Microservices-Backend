@@ -14,35 +14,37 @@ const commentProjection = {
   created_at: comments.createdAt,
 };
 
-export const commentRepository = {
-  async parentOnPost(parentId: string, postId: string) {
+export class CommentRepository {
+  public async parentOnPost(parentId: string, postId: string) {
     return db.select({ id: comments.id }).from(comments)
       .where(and(eq(comments.id, parentId), eq(comments.postId, postId))).limit(1);
-  },
+  }
 
-  async insert(row: { id: string; postId: string; parentId: string | null; authorId: string; authorUsername: string; body: string }) {
+  public async insert(row: { id: string; postId: string; parentId: string | null; authorId: string; authorUsername: string; body: string }) {
     await db.insert(comments).values(row);
-  },
+  }
 
-  async listByPost(postId: string) {
+  public async listByPost(postId: string) {
     return db.select(commentProjection).from(comments)
       .where(eq(comments.postId, postId))
       .orderBy(asc(comments.createdAt))
       .limit(500);
-  },
+  }
 
-  async getById(id: string) {
+  public async getById(id: string) {
     const rows = await db.select(commentProjection).from(comments)
       .where(eq(comments.id, id))
       .limit(1);
     return rows[0];
-  },
+  }
 
-  async delete(id: string) {
+  public async delete(id: string) {
     await db.delete(comments).where(eq(comments.id, id));
-  },
+  }
 
-  async addScore(id: string, delta: number): Promise<void> {
+  public async addScore(id: string, delta: number): Promise<void> {
     await db.update(comments).set({ voteScore: sql`${comments.voteScore} + ${delta}` }).where(eq(comments.id, id));
-  },
-};
+  }
+}
+
+export const commentRepository = new CommentRepository();

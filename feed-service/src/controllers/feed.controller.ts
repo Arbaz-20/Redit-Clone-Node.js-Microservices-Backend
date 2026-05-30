@@ -2,17 +2,18 @@
 import { Request, Response } from 'express';
 import { feedService } from '../services/feed.service';
 
-export const feedController = {
+export class FeedController {
   // Hot feed (time-decayed ranking). Optional ?communityId filter = lightweight personalization.
-  async getHotFeed(req: Request, res: Response) {
+  public async getHotFeed(req: Request, res: Response) {
     const limit = Math.min(Number(req.query.limit) || 25, 100);
     const communityId = typeof req.query.communityId === 'string' ? req.query.communityId : undefined;
     res.json(await feedService.getHotFeed(limit, communityId));
-  },
+  }
 
   // Top feed (raw vote score).
-  async getTopFeed(req: Request, res: Response) {
+  public async getTopFeed(req: Request, res: Response) {
     const limit = Math.min(Number(req.query.limit) || 25, 100);
     res.json(await feedService.getTopFeed(limit));
-  },
-};
+  }
+}
+export const feedController = new FeedController();

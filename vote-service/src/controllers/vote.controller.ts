@@ -13,18 +13,19 @@ function requireTarget(req: Request): { targetType: string; targetId: string } {
   return { targetType, targetId };
 }
 
-export const voteController = {
-  async cast(req: AuthedRequest, res: Response) {
+export class VoteController {
+  public async cast(req: AuthedRequest, res: Response) {
     const { error, value } = voteSchema.validate(req.body);
     if (error) throw new AppError(400, error.details[0].message);
     res.json(await voteService.cast(req.userId!, value));
-  },
-  async score(req: Request, res: Response) {
+  }
+  public async score(req: Request, res: Response) {
     const { targetType, targetId } = requireTarget(req);
     res.json({ targetType, targetId, score: await voteService.score(targetType, targetId) });
-  },
-  async mine(req: AuthedRequest, res: Response) {
+  }
+  public async mine(req: AuthedRequest, res: Response) {
     const { targetType, targetId } = requireTarget(req);
     res.json({ value: await voteService.myValue(req.userId!, targetType, targetId) });
-  },
-};
+  }
+}
+export const voteController = new VoteController();
