@@ -1,11 +1,10 @@
 // notification-service/src/routes/notification.routes.ts
 import { Router } from 'express';
-import { asyncHandler } from '../middleware/error';
 import { requireUser } from '../middleware/auth';
 import { notificationController } from '../controllers/notification.controller';
 
 export const notificationRoutes = Router();
-notificationRoutes.get('/', requireUser, asyncHandler(notificationController.list));
-notificationRoutes.get('/unread-count', requireUser, asyncHandler(notificationController.unreadCount));
-notificationRoutes.post('/read-all', requireUser, asyncHandler(notificationController.markAllRead));
-notificationRoutes.post('/:id/read', requireUser, asyncHandler(notificationController.markRead));
+notificationRoutes.get('/', requireUser, notificationController.List);
+notificationRoutes.get('/unread-count', requireUser, notificationController.UnreadCount);
+notificationRoutes.post('/read-all', requireUser, notificationController.MarkAllRead);
+notificationRoutes.post('/:id/read', requireUser, notificationController.MarkRead);

@@ -1,29 +1,57 @@
 // auth-service/src/controllers/auth.controller.ts
 import { Request, Response } from 'express';
-import { AppError } from '../middleware/error';
+import { StatusCodes } from 'http-status-codes';
 import { registerSchema, loginSchema } from '../validation/auth.schema';
 import { authService } from '../services/auth.service';
 
 export class AuthController {
-  public async register(req: Request, res: Response) {
-    const { error, value } = registerSchema.validate(req.body);
-    if (error) throw new AppError(400, error.details[0].message);
-    const result = await authService.register(value);
-    res.status(201).json(result);
-  }
+  public Register = async (req: Request, res: Response) => {
+    try {
+      const { error, value } = registerSchema.validate(req.body);
 
-  public async login(req: Request, res: Response) {
-    const { error, value } = loginSchema.validate(req.body);
-    if (error) throw new AppError(400, error.details[0].message);
-    const result = await authService.login(value);
-    res.json(result);
-  }
+      if (error) {
+        res.status(StatusCodes.BAD_REQUEST).json({ error: error.details[0].message });
+      } else {
+        const result = await authService.register(value);
+        res.status(StatusCodes.CREATED).json(result);
+      }
+    } catch (error: any) {
+      console.error('Error in Register:', error);
+      res.status(error.status || StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error.message });
+    }
+  };
 
-  public refresh(req: Request, res: Response) {
-    const { refreshToken } = req.body || {};
-    if (!refreshToken) throw new AppError(400, 'refreshToken required');
-    res.json(authService.refresh(refreshToken));
-  }
+  public Login = async (req: Request, res: Response) => {
+    try {
+      const { error, value } = loginSchema.validate(req.body);
+
+      if (error) {
+        res.status(StatusCodes.BAD_REQUEST).json({ error: error.details[0].message });
+      } else {
+        const result = await authService.login(value);
+        res.status(StatusCodes.OK).json(result);
+      }
+    } catch (error: any) {
+      console.error('Error in Login:', error);
+      res.status(error.status || StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error.message });
+    }
+  };
+
+  public Refresh = async (req: Request, res: Response) => {
+    try {
+      const { refreshToken } = req.body || {};
+
+      if (!refreshToken) {
+        res.status(StatusCodes.BAD_REQUEST).json({ error: 'refreshToken required' });
+      } else {
+        const result = await authService.refresh(refreshToken);
+        res.status(StatusCodes.OK).json(result);
+      }
+    } catch (error: any) {
+      console.error('Error in Refresh:', error);
+      res.status(error.status || StatusCodes.INTERNAL_SERVER_ERROR).json({ error: error.message });
+    }
+  };
 }
 
 export const authController = new AuthController();
